@@ -3,181 +3,180 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Left and Right Game</title>
+<title>Phonics Game Dashboard</title>
 
 <style>
-body{
-  margin:0;
-  font-family:"Comic Sans MS", Arial;
-  background:linear-gradient(135deg,#b388eb,#8ec5fc);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.game{
-  background:white;
-  padding:20px;
-  border-radius:20px;
-  width:90%;
-  max-width:900px;
-  text-align:center;
-}
-h1{font-size:40px}
-#question{font-size:24px;margin:15px}
-
-.objects{
-  display:flex;
-  justify-content:space-around;
-  margin:20px;
-}
-
-.objects img{
-  width:120px;
-  cursor:pointer;
-  border-radius:12px;
-}
-
-.objects img:hover{
-  transform:scale(1.1);
-}
-
-.correct{border:5px solid #51cf66;}
-.wrong{border:5px solid #ff6b6b;}
-
-.mark{
-  position:fixed;
-  top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  font-size:120px;
-  display:none;
-}
-.show{display:block}
+body{font-family:Arial;margin:0;background:#f0f8ff;text-align:center;}
+.screen{display:none;padding:20px;}
+.active{display:block;}
+input,button{padding:10px;margin:10px;font-size:16px;}
+.objects img{width:100px;margin:10px;cursor:pointer;}
+.correct{border:4px solid green;}
+.wrong{border:4px solid red;}
+table{margin:auto;border-collapse:collapse;}
+td,th{border:1px solid #ccc;padding:8px;}
 </style>
 </head>
 
 <body>
 
-<div class="game">
-<h1>Left & Right</h1>
-<div id="question"></div>
-
-<div class="objects" id="objects"></div>
-
-<div id="score">Score: 0</div>
+<div id="start" class="screen active">
+  <h2>Enter Child Name</h2>
+  <input id="childName" placeholder="Name">
+  <br>
+  <button onclick="startGame()">Start Game</button>
 </div>
 
-<div id="tick" class="mark">👏</div>
-<div id="cross" class="mark">❌</div>
+<div id="game" class="screen">
+  <h2 id="letter"></h2>
+  <div id="instruction"></div>
+  <div class="objects" id="objects"></div>
+  <div id="score"></div>
+</div>
+
+<div id="dashboard" class="screen">
+  <h2>Performance Dashboard</h2>
+  <div id="summary"></div>
+  <table id="table"></table>
+  <button onclick="location.reload()">Restart</button>
+</div>
 
 <script>
 
-const questions = [
-{
-dir:"RIGHT",
-name:"star",
-objs:[
-"https://cdn-icons-png.flaticon.com/512/1828/1828884.png",  // star
-"https://cdn-icons-png.flaticon.com/512/861/861525.png",    // ball (replaced)
-"https://cdn-icons-png.flaticon.com/512/616/616554.png"
-],
-ansIndex:1
-},
-{
-dir:"LEFT",
-name:"cat",
-objs:[
-"https://cdn-icons-png.flaticon.com/512/616/616408.png",  // correct
-"https://cdn-icons-png.flaticon.com/512/616/616430.png",
-"https://cdn-icons-png.flaticon.com/512/616/616644.png"   // lion (replaced)
-],
-ansIndex:0
-},
-{
-dir:"RIGHT",
-name:"apple",
-objs:[
-"https://cdn-icons-png.flaticon.com/512/415/415682.png",
-"https://cdn-icons-png.flaticon.com/512/590/590685.png",
-"https://cdn-icons-png.flaticon.com/512/590/590682.png"
-],
-ansIndex:1
-},
-{
-dir:"LEFT",
-name:"brown bag",
-objs:[
-"https://cdn-icons-png.flaticon.com/512/3082/3082031.png",
-"https://cdn-icons-png.flaticon.com/512/3082/3082033.png",
-"https://cdn-icons-png.flaticon.com/512/3082/3082035.png"
-],
-ansIndex:0
-}
+/* FIXED IMAGE MAPPING */
+const images={
+apple:"https://cdn-icons-png.flaticon.com/512/415/415682.png",
+ball:"https://cdn-icons-png.flaticon.com/512/861/861512.png",
+cat:"https://cdn-icons-png.flaticon.com/512/616/616430.png",
+dog:"https://cdn-icons-png.flaticon.com/512/616/616408.png",
+egg:"https://cdn-icons-png.flaticon.com/512/1046/1046790.png",   // egg (fixed)
+fish:"https://cdn-icons-png.flaticon.com/512/616/616554.png",    // fish (correct)
+goat:"https://cdn-icons-png.flaticon.com/512/1998/1998610.png",  // goat (new)
+hat:"https://cdn-icons-png.flaticon.com/512/892/892458.png"      // hat (new)
+};
+
+const questions=[
+{letter:"a",word:"apple",options:["apple","ball","cat","dog"]},
+{letter:"b",word:"ball",options:["ball","apple","cat","dog"]},
+{letter:"c",word:"cat",options:["cat","apple","ball","dog"]},
+{letter:"d",word:"dog",options:["dog","apple","ball","cat"]},
+{letter:"e",word:"egg",options:["egg","ball","cat","dog"]},
+{letter:"f",word:"fish",options:["fish","apple","ball","cat"]},
+{letter:"g",word:"goat",options:["goat","apple","ball","cat"]},
+{letter:"h",word:"hat",options:["hat","apple","ball","cat"]}
 ];
 
-let current=0,score=0;
+let current=0,score=0,name="";
+let performance={};
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function startGame(){
+  name=document.getElementById("childName").value || "Student";
+  performance={};
+  questions.forEach(q=>{
+    performance[q.letter]={correct:0,attempt:0};
+  });
+  showScreen("game");
+  loadQ();
+}
 
 function speak(text){
-  const msg=new SpeechSynthesisUtterance(text);
+  let msg=new SpeechSynthesisUtterance(text);
   msg.rate=0.8;
-  speechSynthesis.cancel();
   speechSynthesis.speak(msg);
 }
 
-function loadQuestion(){
+function loadQ(){
   const q=questions[current];
 
-  const text="Click the object to the "+q.dir.toLowerCase()+" of the "+q.name;
-  document.getElementById("question").innerText=text;
+  document.getElementById("letter").innerText=q.letter;
+  let text="/"+q.letter+"/ for "+q.word+". Tap "+q.word;
+  document.getElementById("instruction").innerText=text;
+
   speak(text);
 
-  const objDiv=document.getElementById("objects");
-  objDiv.innerHTML="";
+  const div=document.getElementById("objects");
+  div.innerHTML="";
 
-  q.objs.forEach((o,index)=>{
-    const img=document.createElement("img");
-    img.src=o;
-    img.onclick=()=>check(index,img);
-    objDiv.appendChild(img);
+  shuffle(q.options).forEach(word=>{
+    let img=document.createElement("img");
+    img.src=images[word];
+    img.onclick=()=>check(word,img,q);
+    div.appendChild(img);
   });
+
+  document.getElementById("score").innerText="Score: "+score;
 }
 
-function check(index,img){
-  const q=questions[current];
+function check(word,img,q){
+  performance[q.letter].attempt++;
 
-  if(index===q.ansIndex){
+  if(word===q.word){
+    performance[q.letter].correct++;
     img.classList.add("correct");
     score++;
-    show("tick");
-    speak("Good job");
+    speak("Correct");
     next();
   }else{
     img.classList.add("wrong");
-    show("cross");
     speak("Try again");
   }
-
-  document.getElementById("score").innerText="Score: "+score;
 }
 
 function next(){
   setTimeout(()=>{
     current++;
     if(current>=questions.length){
-      speak("Great job!");
-      alert("Great Job! Score: "+score);
-      location.reload();
-    }else loadQuestion();
-  },1200);
+      saveData();
+      showDashboard();
+    }else loadQ();
+  },1000);
 }
 
-function show(id){
-  const el=document.getElementById(id);
-  el.classList.add("show");
-  setTimeout(()=>el.classList.remove("show"),800);
+function saveData(){
+  let data=JSON.parse(localStorage.getItem("phonicsData")||"[]");
+
+  let totalQ=questions.length;
+  let accuracy=Math.round((score/totalQ)*100);
+
+  data.push({
+    name:name,
+    score:score,
+    total:totalQ,
+    accuracy:accuracy,
+    performance:performance,
+    date:new Date().toLocaleString()
+  });
+
+  localStorage.setItem("phonicsData",JSON.stringify(data));
 }
 
-loadQuestion();
+function showDashboard(){
+  showScreen("dashboard");
+
+  let data=JSON.parse(localStorage.getItem("phonicsData"));
+  let latest=data[data.length-1];
+
+  document.getElementById("summary").innerHTML=
+    "<h3>"+latest.name+"</h3>"+
+    "Score: "+latest.score+"/"+latest.total+
+    "<br>Accuracy: "+latest.accuracy+"%";
+
+  let table="<tr><th>Letter</th><th>Correct</th><th>Attempts</th></tr>";
+
+  for(let l in latest.performance){
+    let p=latest.performance[l];
+    table+=`<tr><td>${l}</td><td>${p.correct}</td><td>${p.attempt}</td></tr>`;
+  }
+
+  document.getElementById("table").innerHTML=table;
+}
+
+function shuffle(a){return a.sort(()=>Math.random()-0.5)}
 
 </script>
 
