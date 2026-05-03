@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Left and Right Game</title>
+
+<style>
+body{
+  margin:0;
+  font-family:"Comic Sans MS", Arial;
+  background:linear-gradient(135deg,#b388eb,#8ec5fc);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.game{
+  background:white;
+  padding:20px;
+  border-radius:20px;
+  width:90%;
+  max-width:900px;
+  text-align:center;
+}
+h1{font-size:40px}
+#question{font-size:24px;margin:15px}
+
+.objects{
+  display:flex;
+  justify-content:space-around;
+  margin:20px;
+}
+
+.objects img{
+  width:120px;
+  cursor:pointer;
+  border-radius:12px;
+}
+
+.objects img:hover{
+  transform:scale(1.1);
+}
+
+.correct{border:5px solid #51cf66;}
+.wrong{border:5px solid #ff6b6b;}
+
+.mark{
+  position:fixed;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:120px;
+  display:none;
+}
+.show{display:block}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+<h1>Left & Right</h1>
+<div id="question"></div>
+
+<div class="objects" id="objects"></div>
+
+<div id="score">Score: 0</div>
+</div>
+
+<div id="tick" class="mark">👏</div>
+<div id="cross" class="mark">❌</div>
+
+<script>
+
+const questions = [
+{
+dir:"RIGHT",
+name:"star",
+objs:[
+"https://cdn-icons-png.flaticon.com/512/1828/1828884.png",  // star
+"https://cdn-icons-png.flaticon.com/512/861/861525.png",    // ball (replaced)
+"https://cdn-icons-png.flaticon.com/512/616/616554.png"
+],
+ansIndex:1
+},
+{
+dir:"LEFT",
+name:"cat",
+objs:[
+"https://cdn-icons-png.flaticon.com/512/616/616408.png",  // correct
+"https://cdn-icons-png.flaticon.com/512/616/616430.png",
+"https://cdn-icons-png.flaticon.com/512/616/616644.png"   // lion (replaced)
+],
+ansIndex:0
+},
+{
+dir:"RIGHT",
+name:"apple",
+objs:[
+"https://cdn-icons-png.flaticon.com/512/415/415682.png",
+"https://cdn-icons-png.flaticon.com/512/590/590685.png",
+"https://cdn-icons-png.flaticon.com/512/590/590682.png"
+],
+ansIndex:1
+},
+{
+dir:"LEFT",
+name:"brown bag",
+objs:[
+"https://cdn-icons-png.flaticon.com/512/3082/3082031.png",
+"https://cdn-icons-png.flaticon.com/512/3082/3082033.png",
+"https://cdn-icons-png.flaticon.com/512/3082/3082035.png"
+],
+ansIndex:0
+}
+];
+
+let current=0,score=0;
+
+function speak(text){
+  const msg=new SpeechSynthesisUtterance(text);
+  msg.rate=0.8;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(msg);
+}
+
+function loadQuestion(){
+  const q=questions[current];
+
+  const text="Click the object to the "+q.dir.toLowerCase()+" of the "+q.name;
+  document.getElementById("question").innerText=text;
+  speak(text);
+
+  const objDiv=document.getElementById("objects");
+  objDiv.innerHTML="";
+
+  q.objs.forEach((o,index)=>{
+    const img=document.createElement("img");
+    img.src=o;
+    img.onclick=()=>check(index,img);
+    objDiv.appendChild(img);
+  });
+}
+
+function check(index,img){
+  const q=questions[current];
+
+  if(index===q.ansIndex){
+    img.classList.add("correct");
+    score++;
+    show("tick");
+    speak("Good job");
+    next();
+  }else{
+    img.classList.add("wrong");
+    show("cross");
+    speak("Try again");
+  }
+
+  document.getElementById("score").innerText="Score: "+score;
+}
+
+function next(){
+  setTimeout(()=>{
+    current++;
+    if(current>=questions.length){
+      speak("Great job!");
+      alert("Great Job! Score: "+score);
+      location.reload();
+    }else loadQuestion();
+  },1200);
+}
+
+function show(id){
+  const el=document.getElementById(id);
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),800);
+}
+
+loadQuestion();
+
+</script>
+
+</body>
+</html>
